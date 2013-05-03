@@ -3,7 +3,7 @@ php-gfarm
 
 PHP Extension for Gfarm File System.
 
-# How to build.
+## How to build.
     $ phpize
     $ ./configure
     $ make

@@ -16,6 +16,7 @@ gfarm_test();
 gfarm_initialize();
 $res = gfarm_open("file1");
 gfarm_close($res);
+gfarm_terminate();
 
 
 echo "\n";

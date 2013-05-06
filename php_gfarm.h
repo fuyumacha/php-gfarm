@@ -24,6 +24,7 @@ PHP_MINFO_FUNCTION(gfarm);
 
 /* gfarm functions */
 PHP_FUNCTION(gfarm_initialize);
+PHP_FUNCTION(gfarm_terminate);
 PHP_FUNCTION(gfarm_chmod);
 PHP_FUNCTION(gfarm_chown);
 PHP_FUNCTION(gfarm_mkdir);

@@ -76,6 +76,7 @@ const zend_function_entry gfarm_functions[] = {
     /* gfarm functions */
     //    PHP_FE(gfarm_test, NULL)
     PHP_FE(gfarm_initialize, NULL)
+    PHP_FE(gfarm_terminate, NULL)
     PHP_FE(gfarm_chmod, arginfo_gfarm_chmod)
     PHP_FE(gfarm_chown, arginfo_gfarm_chown)
     PHP_FE(gfarm_mkdir, arginfo_gfarm_mkdir)
@@ -167,6 +168,21 @@ PHP_MINFO_FUNCTION(gfarm) {
 PHP_FUNCTION(gfarm_initialize) {
     gfarm_error_t gerr;
     gerr = gfarm_initialize(NULL, NULL);
+    if (gerr != GFARM_ERR_NO_ERROR) {
+        php_error(E_ERROR, gfarm_error_string(gerr));
+        RETURN_FALSE;
+    } else {
+        RETURN_TRUE;
+    }
+    return;
+}
+/* }}} */
+
+/* {{{ gfarm_terminate
+ */
+PHP_FUNCTION(gfarm_terminate) {
+    gfarm_error_t gerr;
+    gerr = gfarm_terminate();
     if (gerr != GFARM_ERR_NO_ERROR) {
         php_error(E_ERROR, gfarm_error_string(gerr));
         RETURN_FALSE;

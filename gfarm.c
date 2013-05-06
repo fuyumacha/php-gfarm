@@ -50,7 +50,6 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO(arginfo_gfarm_write, 0)
 ZEND_ARG_INFO(0, gfarm)
 ZEND_ARG_INFO(0, buffer)
-ZEND_ARG_INFO(0, size)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO(arginfo_gfarm_seek, 0)
@@ -103,8 +102,10 @@ zend_module_entry gfarm_module_entry = {
     gfarm_functions,
     PHP_MINIT(gfarm),
     PHP_MSHUTDOWN(gfarm),
-    NULL, /* Replace with NULL if there's nothing to do at request start */
-    NULL, /* Replace with NULL if there's nothing to do at request end */
+    //    PHP_RINIT(gfarm), /* Replace with NULL if there's nothing to do at request start */
+    //    PHP_RSHUTDOWN(gfarm), /* Replace with NULL if there's nothing to do at request end */
+    NULL,
+    NULL,
     PHP_MINFO(gfarm),
 #if ZEND_MODULE_API_NO >= 20010901
     "0.1", /* Replace with version number for your extension */
@@ -118,13 +119,39 @@ zend_module_entry gfarm_module_entry = {
 ZEND_GET_MODULE(gfarm)
 #endif
 
+///* {{{ PHP_RINIT_FUNCTION
+// */
+//PHP_RINIT_FUNCTION(gfarm) {
+//    /* If you have INI entries, uncomment these lines 
+//    REGISTER_INI_ENTRIES();
+//     */
+//
+//    return SUCCESS;
+//}
+///* }}} */
+//
+///* {{{ PHP_RSHUTDOWN_FUNCTION
+// */
+//PHP_RSHUTDOWN_FUNCTION(gfarm) {
+//    /* uncomment this line if you have INI entries
+//    UNREGISTER_INI_ENTRIES();
+//     */
+//    return SUCCESS;
+//}
+///* }}} */
+
+static void gfarm_destructor_gfarmbuf(zend_rsrc_list_entry *rsrc TSRMLS_DC) {
+    GFS_File *gfs_file = (GFS_File *) rsrc->ptr;
+    //        gfs_pio_close(*gfs_file);
+}
+
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(gfarm) {
     /* If you have INI entries, uncomment these lines 
     REGISTER_INI_ENTRIES();
      */
-
+    le_gfarm = zend_register_list_destructors_ex(gfarm_destructor_gfarmbuf, NULL, le_gfarm_name, module_number);
     return SUCCESS;
 }
 /* }}} */
@@ -311,6 +338,7 @@ PHP_FUNCTION(gfarm_open) {
                 php_error(E_ERROR, gfarm_error_string(gerr));
                 RETURN_FALSE;
             } else {
+                printf("gfs_file: %d\n", gfs_file);
                 ZEND_REGISTER_RESOURCE(return_value, gfs_file, le_gfarm);
             }
         } else {
@@ -318,6 +346,7 @@ PHP_FUNCTION(gfarm_open) {
             RETURN_FALSE;
         }
     } else {
+        printf("gfs_file: %d\n", gfs_file);
         ZEND_REGISTER_RESOURCE(return_value, gfs_file, le_gfarm);
     }
 
@@ -355,8 +384,8 @@ PHP_FUNCTION(gfarm_close) {
 PHP_FUNCTION(gfarm_read) {
 
     zval *z_gfs_file;
-    int size;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rl", &z_gfs_file, &size) == FAILURE) {
+    long size = 1024;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|l", &z_gfs_file, &size) == FAILURE) {
         RETURN_FALSE;
     }
 
@@ -373,7 +402,7 @@ PHP_FUNCTION(gfarm_read) {
         php_error(E_ERROR, gfarm_error_string(gerr));
         RETURN_FALSE;
     } else {
-        tmpbuf = realloc(tmpbuf, read_size + 1);
+        tmpbuf = erealloc(tmpbuf, read_size + 1);
         tmpbuf[read_size] = '\0';
         RETURN_STRING(tmpbuf, read_size + 1);
     }
@@ -388,19 +417,18 @@ PHP_FUNCTION(gfarm_write) {
 
     zval *z_gfs_file;
     char *buffer;
-    int buffer_len, size;
+    int buffer_len;
 
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsl", &z_gfs_file, &buffer, &buffer_len, &size) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &z_gfs_file, &buffer, &buffer_len) == FAILURE) {
         RETURN_FALSE;
     }
 
     GFS_File gfs_file;
     ZEND_FETCH_RESOURCE(gfs_file, GFS_File, &z_gfs_file, -1, le_gfarm_name, le_gfarm);
-
     gfarm_error_t gerr;
     int write_size;
-    gerr = gfs_pio_read(gfs_file, buffer, MIN(size, buffer_len), &write_size);
+    gerr = gfs_pio_write(gfs_file, buffer, buffer_len, &write_size);
     if (gerr != GFARM_ERR_NO_ERROR) {
         php_error(E_ERROR, gfarm_error_string(gerr));
         RETURN_FALSE;
@@ -419,9 +447,10 @@ PHP_FUNCTION(gfarm_seek) {
     zval *z_gfs_file;
     off_t offset, ret_offset;
     int whence;
+    offset = 0;
+    whence = 0;
 
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rll", &z_gfs_file, &offset, &whence) == FAILURE) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r|ll", &z_gfs_file, &offset, &whence) == FAILURE) {
         RETURN_FALSE;
     }
 

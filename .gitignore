@@ -28,4 +28,4 @@ gfarm.la
 gfarm.lo
 libtool
 modules/
-
+core

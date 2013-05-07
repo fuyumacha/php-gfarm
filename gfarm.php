@@ -12,23 +12,31 @@ foreach($functions as $func) {
 }
 echo "$br\n";
 
-echo "start file creation test\n";
+$filename = md5(time());
+$content = $filename.$filename.$filename.$filename.$filename;
+
+// Gfarm initialize 
 gfarm_initialize();
-$res = gfarm_open(md5(time()));
-echo "------------------\nwrite start\n------------------\n";
-$fuga = "fuga";
-echo gfarm_write($res, $fuga);
+
+// Create and open the file
+$fp = gfarm_open($filename);
+
+// Write to file and get written size
+echo gfarm_write($fp, $fuga);
 echo "\n";
-echo "------------------\nread1 start\n------------------\n";
-echo "Seek set: ".gfarm_seek($res, 0)."\n";
-echo gfarm_read($res);
 
-echo "------------------\nread2 start\n------------------\n";
-echo "Seek set: ".gfarm_seek($res, 0)."\n";
-echo gfarm_read($res, 2);
+// Sets the file position indicator to 0 and get new file position;
+echo gfarm_seek($fp, 0);
+echo "\n";
+
+// Read from file
+echo gfarm_read($fp);
 
 
-gfarm_close($res);
+// Close the file
+gfarm_close($fp);
+
+// Gfarm terminate
 gfarm_terminate();
 
 
